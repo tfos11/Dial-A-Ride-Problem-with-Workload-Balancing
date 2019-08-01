@@ -8,12 +8,12 @@ infinity = float('inf')
 model = AbstractModel()
 
 #Set path to input files
-path = "C:\\Users\\tr930605\\DARP Model\\DARP Input Files\\"
+path = "C:\\Users\\tfos11\\DARP Model\\DARP Input Files\\"
 
 #Declare number of requests and number of PTUs and the Big M constant
-model.n = Param(initialize = 49)
-model.PTU = Param(initialize = 7)
-model.M = Param(initialize = 10000)
+model.n = Param(initialize = )
+model.PTU = Param(initialize = )
+model.M = Param(initialize = )
 
 #Declare the node and PTU indices
 model.v = RangeSet(0, 2*model.n+1)
@@ -41,9 +41,9 @@ model.li = Param(model.i)
 model.qi = Param(model.i)
 
 #Declare vehicle shift start and end times and capacity
-model.MaxTime = Param(model.k, initialize={1:720, 2:690, 3:900, 4:540, 5:750, 6:600, 7:780})
-model.MinTime = Param(model.k, initialize={1:0, 2:60, 3:30, 4:30, 5:90, 6:60, 7:60})
-model.cap = Param(model.k, initialize={1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1})
+model.MaxTime = Param(model.k, initialize={1:900})
+model.MinTime = Param(model.k, initialize={1:0})
+model.cap = Param(model.k, initialize={1:1})
 
 #Declare double indexed paramters:travel time and route cost
 model.t = Param(model.i, model.j)
@@ -68,8 +68,8 @@ data.load(filename = path +"Tij.csv", param = model.c)
 
 #Declare workload balancing parameters
 
-model.wb2 = Param(initialize = 900)
-model.wb1 = Param(initialize = 25)
+model.wb2 = Param(initialize = )
+model.wb1 = Param(initialize = )
 
 #Objectuve function: Minimize total route cost
 
@@ -77,7 +77,7 @@ def ObjRule(model):
     return sum(model.c[i,j]*model.x[i,j,k] for i in model.i for j in model.j for k in model.k)
 model.Obj = Objective(rule=ObjRule, sense=minimize)
 
-#Constraints A through E are the routing constraints
+#Constraints A through F are the routing constraints
 
 def A_rule(model, i):
     return sum(model.x[i, j, k] for j in model.j for k in model.k) == 1 
@@ -103,7 +103,7 @@ def F_rule(model, i, j, k):
     return model.x[i, i, k] == 0
 model.c_f = Constraint(model.i, model.j, model.k, rule=F_rule)
 
-#Constraints F through H are the service time constraints
+#Constraints G through K are the service time constraints
 
 def G_rule(model, k):
     return model.service[2*model.n+1, k] <= model.MaxTime[k]
@@ -121,11 +121,11 @@ def J_rule(model, i, j, k):
     return model.service[j, k] >= model.service[i,k] + model.di[i] + model.t[i,j] - model.M*(1-model.x[i, j, k])
 model.c_j = Constraint(model.i, model.j, model.k, rule=J_rule)
 
-#Constraints I through M are the load constraints
+def K_rule(model, i, j, k):
+    return model.service[i+model.n, k] >= model.service[i,k] + model.di[i] + model.t[i,j] - model.M*(1-model.x[i, j, k])
+model.k_f = Constraint(model.p, model.j, model.k, rule=K_rule)
 
-def K_rule(model, i, k):
-    return model.ld[i, k] <= model.cap[k] + model.qi[i]
-model.c_k = Constraint(model.i, model.k, rule=K_rule)
+#Constraints L through Q are the load constraints
 
 def L_rule(model, i, k):
     return model.ld[i, k] >= 0
@@ -147,11 +147,11 @@ def P_rule(model, i, k):
     return model.ld[i, k] <= model.cap[k]
 model.c_p = Constraint(model.i, model.k, rule=P_rule)
 
-def Q_rule(model, i, j, k):
-    return model.service[i+model.n, k] >= model.service[i,k] + model.di[i] + model.t[i,j] - model.M*(1-model.x[i, j, k])
-model.q_f = Constraint(model.p, model.j, model.k, rule=Q_rule)
+def Q_rule(model, i, k):
+    return model.ld[i, k] <= model.cap[k] + model.qi[i]
+model.c_q = Constraint(model.i, model.k, rule=Q_rule)
 
-#Declare workload balancing constraint 1: Each PTU workload must be less then some predetermined value and greater than another
+#Declare workload balancing constraintsL Each vehicle workload must be less then some predetermined value and greater than another
 
 def R_rule (model, k):
    return sum((model.t[i,j] + model.di[i])*model.x[i,j,k] for i in model.i for j in model.j) <= model.wb2
@@ -184,18 +184,3 @@ with open(path+'results.txt', 'w') as f:
         for j in instance.j:
             for k in instance.k:
                 print(i, j, k, instance.x[i,j, k].value, instance.service[i,k].value, instance.service[j,k].value, instance.ld[i,k].value, instance.t[i,j], instance.di[i], file=f)
-
-
-print(instance.service[27,1].value)
-
-instance.c_r.pprint()
-for k in instance.k:
-    print(sum((instance.t[i,j] + instance.di[i])*instance.x[i,j,k].value for i in instance.i for j in instance.j))
-
-instance.c_f.pprint()    
-
-with open(path+'allresults.txt', 'w') as f:
-    for i in instance.i:
-        for j in instance.j:
-            for k in instance.k:
-                print(i, j, k, instance.x[i,j, k].value, instance.service[i,k].value, instance.ld[i,k].value, instance.t[i,j], instance.di[i], file=f)
