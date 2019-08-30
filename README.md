@@ -16,3 +16,5 @@ DARP General is a general DARP model that will set up routes for k vehicles for 
 DARP MO is a multi-objective version of the DARP General. Workload balancing is included in the objective function with total travel time. No weights are present however.
 
 DARP Day Of Changes is a specialized DARP designed to update routes from a previous schedule. Pickup times already scheduled are input as a new parameter called wi. The model strives to keep the difference between the previous pickup time and the new pickup smaller than a user specified parameter. It minimizes the number of changed pickup times. The vehicle performing the pickup and delivery can change however. Useful if small pickup time deviations are fine but large ones are not.
+
+Travel Time Generator is an R script that can generate travel time estimates for the DARP with the googleway R package. Requires a Google API key.
